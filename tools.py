@@ -1,15 +1,34 @@
 import smtplib
 from email.mime.text import MIMEText
+from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
 from langchain.tools import tool 
 import os
 from fpdf import FPDF
+from langchain_openai import AzureChatOpenAI
+import json
+from models.database import *
+from sqlalchemy.orm import Session
+from models.models import Proveedor
 
+KEY = os.getenv("KEY")
+VERSION = os.getenv("VERSION")
+MODELO = os.getenv("MODELO")
+ENDPOINT = os.getenv("ENDPOINT")
 MAIL_KEY = os.environ.get("MAIL_KEY")
 MAIL = os.environ.get("MAIL")
+MAIL_ENVIO = os.environ.get("MAIL_ENVIO")
+
+llm = AzureChatOpenAI(
+    api_key = KEY,
+    api_version = VERSION,
+    azure_endpoint = ENDPOINT,
+    azure_deployment = MODELO,
+    request_timeout = 15
+    )
 
 @tool
-def enviar_correo(destinatario, asunto, mensaje, remitente=MAIL, clave= MAIL_KEY):
+def enviar_correo(asunto: str, mensaje: str, filename: str =None):
     """
     Envía un correo electrónico utilizando SMTP con Gmail.
     
@@ -26,32 +45,33 @@ def enviar_correo(destinatario, asunto, mensaje, remitente=MAIL, clave= MAIL_KEY
 
         # Crear el mensaje
         msg = MIMEMultipart()
-        msg["From"] = remitente
-        msg["To"] = destinatario
+        msg["From"] = MAIL
+        msg["To"] = MAIL_ENVIO # En entorno de producción, se enviará al destinatario asignado en la transición
         msg["Subject"] = asunto
         msg.attach(MIMEText(mensaje, "plain"))
+
+        # Adjuntar PDF si se especifica
+        if filename:
+            with open(filename, "rb") as f:
+                adjunto = MIMEApplication(f.read(), _subtype="pdf")
+                adjunto.add_header("Content-Disposition", "attachment", filename=filename)
+                msg.attach(adjunto)
+
 
         # Conectar al servidor SMTP
         servidor = smtplib.SMTP(servidor_smtp, puerto_smtp)
         servidor.starttls()  # Seguridad con TLS
-        servidor.login(remitente, clave)  # Autenticación
+        servidor.login(MAIL, MAIL_KEY)  # Autenticación
 
         # Enviar el correo
-        servidor.sendmail(remitente, destinatario, msg.as_string())
+        servidor.sendmail(MAIL, MAIL_ENVIO, msg.as_string())
         servidor.quit()
 
-        print(f"✅ Correo enviado correctamente a {destinatario}")
+        print(f"✅ Correo enviado correctamente a {MAIL_ENVIO}")
     except Exception as e:
         print(f"❌ Error al enviar el correo: {e}")
 
-# Ejemplo de uso
-enviar_correo(
-    destinatario="jorgevicentejuan@gmail.com",
-    asunto="Prueba de correo",
-    mensaje="Hola, esto es un correo de prueba enviado desde Python."
-)
-
-
+@tool
 def generar_pdf_proveedor(filename, datos):
     """
     Genera un archivo PDF con los datos de un proveedor.
@@ -75,3 +95,29 @@ def generar_pdf_proveedor(filename, datos):
 
     pdf.output(filename)
     print(f"📄 PDF generado: {filename}")
+
+@tool 
+def insertar_proveedores(datos: str) -> str:
+    """
+    Inserta la informacion del proveedor en la base de datos.
+    """
+    session = Session(bind=engine)
+
+    datos = json.loads(datos)
+
+    # Comprobacion del que el proveedor no exista
+    proveedor_existente = session.query(Proveedor).filter_by(email=datos["email"]).first()
+    if proveedor_existente:
+        session.close()
+        return "El proveedor ya existe."
+    nuevo_proveedor = Proveedor(
+        nombre=datos["nombre"], 
+        email=datos["email"], 
+        contacto=datos["contacto"]
+        )
+    session.add(nuevo_proveedor)
+    session.commit()
+    session.close()
+
+    return "Insertado correctamente."
+

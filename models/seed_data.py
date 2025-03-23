@@ -67,9 +67,8 @@ session.commit()
 
 # 📌 3. Insertar Transiciones con Usuarios
 transiciones = [
-    ("pendiente_condicionada", "grabar_cesta_srm", "Se genera la creación de la compra", "IoTBD-Control de gestión"),
+    ("pendiente_condicionada", "solicitar_firma_inf_prov_cond", "Se genera la creación de la compra", "IoTBD-Control de gestión"),
     ("pendiente_no_condicionada", "grabar_cesta_srm", "Se genera la creación de la compra", "IoTBD-Control de gestión"),
-    ("grabar_cesta_srm", "solicitar_firma_inf_prov_cond", "Crear el pedido", "IoTBD-Funciones"),
     ("solicitar_firma_inf_prov_cond", "firma_inf_prov_cond", "Pedido registrado en SRM", "IoTBD-Director del área técnica"),
     ("firma_inf_prov_cond", "lanzar_cesta_srm", "Firma de informe", "IoTBD-Control de gestión"),
     ("lanzar_cesta_srm", "aprobar_compra_manager", "Nueva cesta en SRM", "IoTBD-Control de gestión"),
