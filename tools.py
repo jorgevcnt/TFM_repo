@@ -10,6 +10,9 @@ import json
 from models.database import *
 from sqlalchemy.orm import Session
 from models.models import Proveedor
+import imaplib
+import email
+from email.header import decode_header
 
 KEY = os.getenv("KEY")
 VERSION = os.getenv("VERSION")
@@ -33,10 +36,9 @@ def enviar_correo(asunto: str, mensaje: str, filename: str =None):
     Envía un correo electrónico utilizando SMTP con Gmail.
     
     Parámetros:
-    - destinatario: Email del destinatario.
     - asunto: Asunto del correo.
     - mensaje: Cuerpo del mensaje.
-    - remitente: (Opcional) Tu dirección de correo de Gmail.
+    - filename: Archivo adjunto
     """
     try:
         # Configuración del servidor SMTP de Gmail
@@ -121,3 +123,49 @@ def insertar_proveedores(datos: str) -> str:
 
     return "Insertado correctamente."
 
+@tool
+def leer_bandeja_entrada():
+    """
+    Lee los últimos n correos de la bandeja de entrada.
+    """
+
+    # Conectarse al servidor
+    n=3
+    servidor="imap.gmail.com"
+    mail = imaplib.IMAP4_SSL(servidor)
+    mail.login(MAIL, MAIL_KEY)
+    mail.select("inbox")
+
+    # Buscar todos los correos
+    _, mensajes = mail.search(None, "ALL")
+    mensajes = mensajes[0].split()
+
+    print(f"📥 Total de correos: {len(mensajes)}\n")
+
+    for i in mensajes[-n:]:
+        _, data = mail.fetch(i, "(RFC822)")
+        mensaje = email.message_from_bytes(data[0][1])
+
+        # Obtener asunto
+        asunto, cod = decode_header(mensaje["Subject"])[0]
+        if isinstance(asunto, bytes):
+            asunto = asunto.decode(cod or "utf-8")
+
+        # Obtener remitente
+        de = mensaje.get("From")
+
+        # Mostrar contenido
+        cuerpo = ""
+        if mensaje.is_multipart():
+            for parte in mensaje.walk():
+                tipo = parte.get_content_type()
+                disp = str(parte.get("Content-Disposition"))
+                if tipo == "text/plain" and "attachment" not in disp:
+                    cuerpo = parte.get_payload(decode=True).decode()
+                    break
+        else:
+            cuerpo = mensaje.get_payload(decode=True).decode()
+
+        resumen = f"Asunto: {asunto}\nDe: {de}\nContenido: {cuerpo[:500]}"
+    mail.logout()
+    return resumen

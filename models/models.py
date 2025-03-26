@@ -26,7 +26,7 @@ class Pedido(Base):
     contrato = relationship("Contrato")
 
     cesta_id = Column(Integer, ForeignKey("cestas.id_cesta"), nullable=True)
-    cesta = relationship("Cesta")
+    cesta = relationship("Cesta", back_populates="pedido")
 
     moneda_id = Column(Integer, ForeignKey("monedas.id_moneda"), nullable=True) 
     moneda = relationship("Moneda")
@@ -192,6 +192,7 @@ class Cesta(Base):
     moneda = relationship("Moneda")
 
     fecha_creacion = Column(DateTime, default=datetime.datetime.utcnow)
+    pedido = relationship("Pedido", back_populates="cesta", uselist=False)  # 🔄 Uno a uno
 
 
 

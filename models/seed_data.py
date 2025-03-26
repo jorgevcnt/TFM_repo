@@ -72,6 +72,7 @@ transiciones = [
     ("solicitar_firma_inf_prov_cond", "firma_inf_prov_cond", "Pedido registrado en SRM", "IoTBD-Director del área técnica"),
     ("firma_inf_prov_cond", "lanzar_cesta_srm", "Firma de informe", "IoTBD-Control de gestión"),
     ("lanzar_cesta_srm", "aprobar_compra_manager", "Nueva cesta en SRM", "IoTBD-Control de gestión"),
+    ("grabar_cesta_srm", "aprobar_compra_manager", "Nueva cesta en SRM", "IoTBD-Control de gestión"),
     ("aprobar_compra_manager", "aprobar_compra_gestion", "Aprobación del Manager", "IoTBD-Responsable CECO"),
     ("aprobar_compra_gestion", "revision_compra", "Aprobación anterior", "IoTBD-Control de gestión"),
     ("revision_compra", "solicitar_oferta_provedoores", "Compra revisada", "IoTBD-Compras"),
