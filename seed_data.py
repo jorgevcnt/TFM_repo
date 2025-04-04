@@ -41,7 +41,7 @@ estados = [
     ("negociacion_proposicion_proveedores", "flujo"), 
     ("aprobar_adjuducacion", "aprobacion"),
     ("facturar", "flujo"),
-    ("fin", "flujo"),
+    ("finalizado", "flujo"),
 ]
 
 
