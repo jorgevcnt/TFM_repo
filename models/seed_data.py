@@ -34,12 +34,12 @@ estados = [
     ("solicitar_firma_inf_prov_cond", "flujo"),
     ("firma_inf_prov_cond", "flujo"),
     ("lanzar_cesta_srm", "flujo"),
-    ("aprobar_compra_manager", "aprobacion"),
+    ("aprobar_compra_manager", "flujo"),
     ("revision_compra", "flujo"),
     ("solicitar_oferta_provedoores", "flujo"),
     ("consulta_acep_oferta", "flujo"),
     ("negociacion_proposicion_proveedores", "flujo"), 
-    ("aprobar_adjuducacion", "aprobacion"),
+    ("aprobar_adjudicacion", "flujo"),
     ("facturar", "flujo"),
     ("finalizado", "flujo"),
 ]
@@ -74,8 +74,8 @@ transiciones = [
     ("revision_compra", "solicitar_oferta_provedoores", "Compra revisada", "IoTBD-Compras"),
     ("solicitar_oferta_provedoores", "consulta_acep_oferta", "Pedido en regla", "IoTBD-Compras"),
     ("consulta_acep_oferta", "negociacion_proposicion_proveedores", "El proveedor envía la oferta", "IoTBD-Responsable Técnico solicitud"),
-    ("negociacion_proposicion_proveedores", "aprobar_adjuducacion", "Una vez la oferta se consulta", "IoTBD-Compras"),
-    ("aprobar_adjuducacion", "facturar", "Una vez elegido el proveedor se cierra", "IoTBD-Directora"),
+    ("negociacion_proposicion_proveedores", "aprobar_adjudicacion", "Una vez la oferta se consulta", "IoTBD-Compras"),
+    ("aprobar_adjudicacion", "facturar", "Una vez elegido el proveedor se cierra", "IoTBD-Directora"),
     ("facturar", "finalizado", "Se contabiliza la factura", "IoTBD-Finanzas"),
 ]
 

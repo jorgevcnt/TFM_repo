@@ -107,6 +107,10 @@ def insertar_proveedores(datos: str) -> str:
 
     datos = json.loads(datos)
 
+    # 🔧 Estandarizar a minúsculas
+    datos["nombre"] = datos["nombre"].strip().lower()
+    datos["email"] = datos["email"].strip().lower()  
+
     # Comprobacion del que el proveedor no exista
     proveedor_existente = session.query(Proveedor).filter_by(email=datos["email"]).first()
     if proveedor_existente:

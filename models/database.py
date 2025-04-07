@@ -12,7 +12,7 @@ DB_PATH = os.path.join(BASE_DIR, "pedidos.db")
 DB_URL = f"sqlite:///{DB_PATH}"
 
 # Crear motor de base de datos
-engine = create_engine(DB_URL, echo=True)
+engine = create_engine(DB_URL, echo=False)
 
 # Crear sesión para interactuar con la BD
 SessionLocal = sessionmaker(bind=engine)
