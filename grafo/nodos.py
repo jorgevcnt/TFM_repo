@@ -37,11 +37,11 @@ def obtener_datos_pedido(entrada_usuario):
     - Moneda en la que se realizó la compra utiliza el codigo de 3 letras
     - Presupuesto estimado
     - Producto a comprar
-
+    - Si el proveedor es nuevo
     {entrada_usuario}
 
     Devuelve los datos en un formato claro como:
-    "Proveedor: Proveedor X, Moneda: EUR, Presupuesto: 5000, Producto: [Producto Y], Cantidad: 10"
+    "Proveedor: Proveedor X, Moneda: EUR, Presupuesto: 5000, Producto: [Producto Y], Cantidad: 10, Nuevo: True"
     '''
     response = llm.invoke(prompt)
     datos_ia = response.content.strip()
@@ -59,49 +59,19 @@ def obtener_datos_pedido(entrada_usuario):
     presupuesto = float(datos_extraidos.get('presupuesto', 1000)) # Por defecto 1000
     producto = datos_extraidos.get('producto', 'no especificado')
     cantidad = int(datos_extraidos.get('cantidad', 1)) # Por defecto 1
+    es_nuevo_str = datos_extraidos.get('nuevo', 'false').strip().lower()
+    es_nuevo = es_nuevo_str == "true"
     print(f"📦 Datos extraídos: Proveedor: {nombre_proveedor}, Moneda: {codigo_moneda}, Presupuesto: {presupuesto}")
     
-    # Verificar si el proveedor ya existe en la BD
-    proveedor = session.query(Proveedor).filter_by(nombre=nombre_proveedor).first()
-    proveedor_id = proveedor.id_proveedor if proveedor else None
-    # Si el proveedor existe en la BD se va por el flujo de proveedor no condicionado
-    if proveedor:
-        print(f"✅ Proveedor '{proveedor.nombre}' encontrado en la base de datos.")
-        es_nuevo = False
-        estado_inicial_nombre = "pendiente_no_condicionada"
-    # Si el proveedor no existe en la BD se va por el flujo de proveedor condicionado
-    else:
-        print(f"⚠️ Proveedor '{nombre_proveedor}' no encontrado. Requiere validación.")
-        es_nuevo = True
+    # Se implementa el estado inicial en funcion de si es nuevo o no el proveedor
+    if es_nuevo:
         estado_inicial_nombre = "pendiente_condicionada"
-        entrada_usuario = input("👉 Nombre, email y contacto del proveedor (en lenguaje natural):\n").lower()
-        agente_proveedor = create_react_agent(llm ,tools=[insertar_proveedores])
-        # Se crea un agente que se encargara de obtener los datos del proveedor e introducirlo en la base de datos
-        prompt = f''' 
-        Eres el encargado de obtener la información de un proveedor.
-        Se necesita conocer:
-        - Nombre del proveedor 
-        - Mail del proveedor
-        - Contacto del proveedor
+    else:
+        estado_inicial_nombre = "pendiente_no_condicionada"
 
-        Aqui tienes la información que tienes que obtener:
-
-        {entrada_usuario}
-
-        Devuelve unicamente un formato JSON como:
-            "nombre": "...",
-            "email": "...",
-            "contacto": "..."
-        '
-        Una vez generado el json, utiliza la herramienta insertar_proveedores para insertar el proveedor en la base de datos y no generes ningun mensaje adicional.
-        '''
-        response = agente_proveedor.invoke({'messages': [HumanMessage(content = prompt)]})
-        print(response['messages'][-1].content)
-
-        # 🔁 Volver a buscar el proveedor recién insertado
-        proveedor = session.query(Proveedor).filter_by(nombre=nombre_proveedor.lower()).first()
-        proveedor_id = proveedor.id_proveedor if proveedor else None
-        print(f"✅ Proveedor '{proveedor_id}' encontrado en la base de datos.")
+    proveedor = session.query(Proveedor).filter_by(nombre=nombre_proveedor.lower()).first()
+    proveedor_id = proveedor.id_proveedor if proveedor else None
+    print(f"✅ Proveedor '{proveedor_id}' encontrado en la base de datos.")
 
     # Obtener estado inicial correspondiente
     estado_inicial = session.query(Estado).filter_by(nombre=estado_inicial_nombre).first()
@@ -171,7 +141,6 @@ def obtener_datos_pedido(entrada_usuario):
         "cantidad": cantidad,
         "es_nuevo": es_nuevo  # Indica si el proveedor debe validarse antes de continuar
     }
-
 ## NODO 2
 
 def decidir_siguiente_nodo(datos):

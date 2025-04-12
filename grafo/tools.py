@@ -125,7 +125,11 @@ def insertar_proveedores(datos: str) -> str:
     session.commit()
     session.close()
 
-    return "Insertado correctamente."
+    return json.dumps({
+            "nombre": datos['nombre'],
+            "email": datos['email'],
+            "contacto": datos['contacto']
+    })
 
 @tool
 def leer_bandeja_entrada():
