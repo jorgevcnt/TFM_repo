@@ -125,6 +125,10 @@ if "pedido_procesado" not in st.session_state:
 if "esperando_datos_proveedor" not in st.session_state:
     st.session_state["esperando_datos_proveedor"] = False
 
+if "grafo_compilado" not in st.session_state:
+    st.session_state["grafo_compilado"] = construir_flujo()
+
+
 # Mostrar historial
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
@@ -181,15 +185,25 @@ if prompt := st.chat_input("¿Qué necesitas comprar?"):
                     # Resetear estado
 
                     st.session_state["esperando_datos_proveedor"] = False
+                    with st.spinner("🔄 Realizando el pedido, por favor espere..."):
 
-                    # Obtener mensaje original
+                        # Obtener mensaje original
                     
-                    mensaje_lang = st.session_state.get("mensaje_compra_detectado") + "Proveedor nuevo"
+                        mensaje_lang = st.session_state.get("mensaje_compra_detectado") + "Proveedor nuevo"
                     
-                    
-                    print(mensaje_lang)
-                    ## INOKE DEL GRAFO
+                        grafo = st.session_state["grafo_compilado"]
+                        resultado = grafo.invoke(mensaje_lang)
+                    mensaje_resumen = f"""
+                    ✅ Su pedido ha sido creado con éxito.
 
+                    - 🧾 **ID del pedido**: `{resultado["id_pedido"]}`
+                    - 📦 **Producto**: {resultado["descripcion"]}
+                    - 💰 **Presupuesto**: {resultado["presupuesto"]} €
+                    - 🧾 **Cantidad**: {resultado["cantidad"]}
+                    - 📄 **Nombre proveedor**: `{resultado["nombre_proveedor"]}`
+                    """
+
+                    st.markdown(mensaje_resumen)
 
 
                 except Exception as e:
@@ -205,11 +219,22 @@ if prompt := st.chat_input("¿Qué necesitas comprar?"):
                 proveedor_existe = extraer_proveedor(prompt)
                 st.session_state["mensaje_compra_detectado"] = prompt
                 if proveedor_existe:
-                    ## LLAMAR AL GRAFO, HACER EL INVOKE.
-                    mensaje_lang = st.session_state.get("mensaje_compra_detectado")
-                    ## Invoke del grafo
-                    print(mensaje_lang)
-                    pass
+                    with st.spinner("🔄 Realizando el pedido, por favor espere..."):
+
+                        ## LLAMAR AL GRAFO, HACER EL INVOKE.
+                        mensaje_lang = st.session_state.get("mensaje_compra_detectado") 
+                        grafo = st.session_state["grafo_compilado"]
+                        resultado = grafo.invoke(mensaje_lang)
+                    mensaje_resumen = f"""
+                    ✅ Su pedido ha sido creado con éxito.
+
+                    - 🧾 **ID del pedido**: `{resultado["id_pedido"]}`
+                    - 📦 **Producto**: {resultado["descripcion"]}
+                    - 💰 **Presupuesto**: {resultado["presupuesto"]} €
+                    - 🧾 **Cantidad**: {resultado["cantidad"]}
+                    - 📄 **Nombre proveedor**: `{resultado["nombre_proveedor"]}`
+                    """
+                    st.markdown(mensaje_resumen)
                 else:
                     ## PROCESAR EL NUEVO PROVEEDOR
                     st.session_state["esperando_datos_proveedor"] = True

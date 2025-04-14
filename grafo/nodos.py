@@ -8,6 +8,8 @@ from sqlalchemy.orm import Session
 import json
 from grafo.tools import *
 import time
+from datetime import datetime
+
 
 MODELO = os.getenv("MODELO")
 KEY = os.getenv("KEY")
@@ -27,6 +29,8 @@ def obtener_datos_pedido(entrada_usuario):
     ''' Nodo que usa IA para obtener los datos del pedido del usuario, crea la cesta y el pedido con el estado inicial,
       y decide si el flujo valida el proveedor o graba la cesta.
     '''
+
+    print("Entrando a nodo 1.")
     # Se crea la sesión de SQLAlchemy	
     session = Session(bind=engine)
 
@@ -37,11 +41,12 @@ def obtener_datos_pedido(entrada_usuario):
     - Moneda en la que se realizó la compra utiliza el codigo de 3 letras
     - Presupuesto estimado
     - Producto a comprar
+    - Cantidad a comprar
     - Si el proveedor es nuevo
     {entrada_usuario}
 
     Devuelve los datos en un formato claro como:
-    "Proveedor: Proveedor X, Moneda: EUR, Presupuesto: 5000, Producto: [Producto Y], Cantidad: 10, Nuevo: True"
+    "Proveedor: Proveedor X, Moneda: EUR, Presupuesto: 5000, Producto: Producto Y, Cantidad: 10, Nuevo: True"
     '''
     response = llm.invoke(prompt)
     datos_ia = response.content.strip()
@@ -61,7 +66,7 @@ def obtener_datos_pedido(entrada_usuario):
     cantidad = int(datos_extraidos.get('cantidad', 1)) # Por defecto 1
     es_nuevo_str = datos_extraidos.get('nuevo', 'false').strip().lower()
     es_nuevo = es_nuevo_str == "true"
-    print(f"📦 Datos extraídos: Proveedor: {nombre_proveedor}, Moneda: {codigo_moneda}, Presupuesto: {presupuesto}")
+    print(f"📦 Datos extraídos: Proveedor: {nombre_proveedor}, Moneda: {codigo_moneda}, Presupuesto: {presupuesto}, Cantidad: {cantidad}, Nuevo: {es_nuevo}")
     
     # Se implementa el estado inicial en funcion de si es nuevo o no el proveedor
     if es_nuevo:
@@ -148,7 +153,7 @@ def decidir_siguiente_nodo(datos):
     Determina si el flujo sigue a `grabar_cesta_srm` o `gestionar_proveedor_nuevo`
     dependiendo de si el proveedor es nuevo o no.
     """
-
+    print("Entrando a nodo 2.")
     if isinstance(datos, tuple):
         datos = datos[1]  # 🔹 Solo nos interesa la segunda parte de la tupla
 
@@ -170,6 +175,7 @@ def grabar_cesta_srm(datos):
      Simula el envío del pedido a SAP SRM, registra el estado en la BD y actualiza `HistorialPedido`
     antes de cambiar el estado a `aprobar_compra_manager`.
     """
+    print("Entrando a nodo 3.")
     session = Session(bind=engine)
 
     if isinstance(datos, tuple):
@@ -230,7 +236,7 @@ def grabar_cesta_srm(datos):
         id_pedido=pedido.id_pedido,
         estado_anterior=estado_anterior_id,  # 🔹 Estado antes de SAP
         estado_nuevo=nuevo_estado.id_estado,  # 🔹 Estado después de SAP
-        estado_aprobacion="pendiente",
+        estado_aprobacion="aprobado",
         id_usuario=pedido.creador_id,
         id_transicion=transicion.id_transicion
     )
@@ -252,7 +258,7 @@ def grabar_cesta_srm(datos):
 ## NODO 4
 
 def gestionar_proveedor_nuevo(datos):
-    
+    print("Entrando a nodo 4.")
     session = Session(bind=engine)
     
     if isinstance(datos, tuple):
@@ -309,8 +315,7 @@ def gestionar_proveedor_nuevo(datos):
         id_pedido=id_pedido,
         estado_anterior=estado_anterior_id,
         estado_nuevo=nuevo_estado.id_estado,
-        estado_aprobacion="pendiente",
-        fecha_cambio=datetime.utcnow(),
+        estado_aprobacion="aprobado",
         id_usuario=pedido.creador_id,
         id_transicion=1  # Si sabes el ID exacto de esta transición
     )
@@ -324,6 +329,7 @@ def gestionar_proveedor_nuevo(datos):
 ## NODO 5
 
 def aprobacion_proveedor(datos):
+    print("Entrando a nodo 5.")
     # Crear la sesión de SQLAlchemy
     session = Session(bind=engine)
     # Crear el agente con las tools
@@ -370,7 +376,6 @@ def aprobacion_proveedor(datos):
                 estado_anterior=estado_anterior,
                 estado_nuevo=nuevo_estado.id_estado,
                 estado_aprobacion="aprobado",
-                fecha_cambio=datetime.utcnow(),
                 id_usuario=datos["id_usuario"],
                 id_transicion=3
             )
@@ -404,6 +409,7 @@ def lanzar_cesta_srm(datos):
     registra el estado en la BD y actualiza `HistorialPedido`
     antes de cambiar el estado a `aprobar_compra_manager`.
     """
+    print("Entrando a nodo 6.")
     session = Session(bind=engine)
 
     id_pedido = datos["id_pedido"]
@@ -461,7 +467,7 @@ def lanzar_cesta_srm(datos):
         id_pedido=pedido.id_pedido,
         estado_anterior=estado_anterior_id, 
         estado_nuevo=nuevo_estado.id_estado,  
-        estado_aprobacion="pendiente",
+        estado_aprobacion="aprobado",
         id_usuario=pedido.creador_id,
         id_transicion=transicion.id_transicion
     )
@@ -483,6 +489,7 @@ def lanzar_cesta_srm(datos):
 ## NODO 7
 
 def aprobar_compra_manager(datos):
+    print("Entrando a nodo 7.")
     session = Session(bind=engine)
     # Obtener datos del pedido y proveedor
     proveedor = session.query(Proveedor).filter_by(id_proveedor=datos["id_proveedor"]).first()
@@ -548,7 +555,6 @@ def aprobar_compra_manager(datos):
                 estado_anterior=estado_anterior,
                 estado_nuevo=nuevo_estado.id_estado,
                 estado_aprobacion="aprobado",
-                fecha_cambio=datetime.utcnow(),
                 id_usuario=datos["id_usuario"],
                 id_transicion=transicion.id_transicion
             )
@@ -577,6 +583,7 @@ def aprobar_compra_manager(datos):
 ## NODO 8
 
 def resumen_cesta_para_envio(datos):
+    print("Entrando a nodo 8.")
     session = Session(bind=engine)
 
     id_cesta = datos["id_cesta"]
@@ -673,7 +680,6 @@ def resumen_cesta_para_envio(datos):
                 estado_anterior=estado_anterior,
                 estado_nuevo=nuevo_estado.id_estado,
                 estado_aprobacion="aprobado",
-                fecha_cambio=datetime.utcnow(),
                 id_usuario=datos["id_usuario"],
                 id_transicion=transicion.id_transicion
             )
@@ -709,6 +715,7 @@ def envio_proveedores(datos):
     En caso de implementación deberia de ser entiendo atacando un endpoint, en este caso,
     se utilizará un string y se pasará directamente al siguiente nodo para validar el proceso.
     """
+    print("Entrando a nodo 9.")
     session = Session(bind=engine)
 
     id_cesta = datos["id_cesta"]
@@ -767,7 +774,7 @@ def envio_proveedores(datos):
         id_pedido=pedido.id_pedido,
         estado_anterior=estado_anterior, 
         estado_nuevo=nuevo_estado.id_estado,  
-        estado_aprobacion="pendiente",
+        estado_aprobacion="aprobado",
         id_usuario=pedido.creador_id,
         id_transicion=transicion.id_transicion
     )
@@ -793,6 +800,7 @@ def registro_oferta(datos):
     Se debe de registrar la oferta en le tabla oferta con los datos del proveedor y asociarla al pedido.
     
     """
+    print("Entrando a nodo 10.")
     session = Session(bind=engine)
 
     id_cesta = datos["id_cesta"]
@@ -848,7 +856,7 @@ def registro_oferta(datos):
         id_pedido=pedido.id_pedido,
         estado_anterior=estado_anterior, 
         estado_nuevo=nuevo_estado.id_estado,  
-        estado_aprobacion="pendiente",
+        estado_aprobacion="aprobado",
         id_usuario=pedido.creador_id,
         id_transicion=transicion.id_transicion
     )
@@ -874,6 +882,7 @@ def negociacion_proposicion(datos):
     Se debe de registrar la oferta en le tabla oferta con los datos del proveedor y asociarla al pedido.
     
     """
+    print("Entrando a nodo 11.")
     session = Session(bind=engine)
 
     id_cesta = datos["id_cesta"]
@@ -915,7 +924,7 @@ def negociacion_proposicion(datos):
         id_pedido=pedido.id_pedido,
         estado_anterior=estado_anterior, 
         estado_nuevo=nuevo_estado.id_estado,  
-        estado_aprobacion="pendiente",
+        estado_aprobacion="aprobado",
         id_usuario=pedido.creador_id,
         id_transicion=transicion.id_transicion
     )
@@ -941,6 +950,7 @@ def aproabar_adjudicacion(datos):
     Se debe de registrar el contrato en le tabla contrato con los datos del proveedor y asociarla al pedido.
     Se debe cambiar el estado de la oferta a aprobada
     """
+    print("Entrando a nodo 12.")
     session = Session(bind=engine)
 
     id_cesta = datos["id_cesta"]
@@ -1015,7 +1025,7 @@ def aproabar_adjudicacion(datos):
         id_pedido=pedido.id_pedido,
         estado_anterior=estado_anterior, 
         estado_nuevo=nuevo_estado.id_estado,  
-        estado_aprobacion="pendiente",
+        estado_aprobacion="aprobado",
         id_usuario=pedido.creador_id,
         id_transicion=transicion.id_transicion
     )
@@ -1041,6 +1051,7 @@ def facturar(datos):
     Se factura el pedido y se cambia el estado a 'facturar'.
     Se debe de registrar la factura en le tabla factura con los datos del proveedor y asociarla al pedido.
     """
+    print("Entrando a nodo 13.")
     session = Session(bind=engine)
 
     id_cesta = datos["id_cesta"]
@@ -1121,6 +1132,7 @@ def fin(datos):
     Se debe de registrar el contrato en le tabla contrato con los datos del proveedor y asociarla al pedido.
     Se debe cambiar el estado de la oferta a aprobada
     """
+    print("Entrando a nodo 14.")
     session = Session(bind=engine)
 
     id_cesta = datos["id_cesta"]
@@ -1178,4 +1190,4 @@ def fin(datos):
 
     session.close()
 
-    return "Flujo finalizado"
+    return datos
