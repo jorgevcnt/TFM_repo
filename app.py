@@ -80,7 +80,6 @@ def solicitud_compra(mensaje_usuario):
     Responde únicamente con True si es una solicitud de compra o False si no lo es.
     No añadas ninguna otra palabra ni explicación
     """
-    print("Entra al comprobador")
     respuesta = llm.invoke([HumanMessage(content = prompt)]).content.strip().lower()
     if respuesta == "true":
         return True
@@ -152,11 +151,8 @@ if prompt := st.chat_input("¿Qué necesitas comprar?"):
                 - Nombre del proveedor 
                 - Mail del proveedor
                 - Contacto del proveedor
-
                 Aqui tienes la información que tienes que obtener:
-
                 {prompt}
-
                 Devuelve unicamente un formato JSON como:
                     "nombre": "...",
                     "email": "...",
@@ -170,8 +166,6 @@ if prompt := st.chat_input("¿Qué necesitas comprar?"):
                 contenido = response['messages'][-1].content
                 print(f"El LLM devuelve: {contenido}")
                 try: 
-                    print("ya se ha hehco el insert del nuevo proveedor, ahora falta meterle el proveedor para meterlo por el invoke si es nuevo o no")
-        
                     datos = json.loads(contenido)
                     print(datos)
                     nombre_proveedor = datos['nombre'].strip().lower()
@@ -183,14 +177,10 @@ if prompt := st.chat_input("¿Qué necesitas comprar?"):
                     print(f"✅ Proveedor '{proveedor_id}' encontrado en la base de datos.")
                     session.close()
                     # Resetear estado
-
                     st.session_state["esperando_datos_proveedor"] = False
                     with st.spinner("🔄 Realizando el pedido, por favor espere..."):
-
                         # Obtener mensaje original
-                    
                         mensaje_lang = st.session_state.get("mensaje_compra_detectado") + "Proveedor nuevo"
-                    
                         grafo = st.session_state["grafo_compilado"]
                         resultado = grafo.invoke(mensaje_lang)
                     mensaje_resumen = f"""
@@ -202,7 +192,6 @@ if prompt := st.chat_input("¿Qué necesitas comprar?"):
                     - 🧾 **Cantidad**: {resultado["cantidad"]}
                     - 📄 **Nombre proveedor**: `{resultado["nombre_proveedor"]}`
                     """
-
                     st.markdown(mensaje_resumen)
 
 
